@@ -371,6 +371,315 @@ if uploaded_file:
     else:
         st.info("No messages available for emoji analysis.")
     
+    # Timeline analysis
+    st.subheader("📈 Timeline Analysis")
+    if len(filtered_df) > 0:
+        import plotly.express as px
+        import plotly.graph_objects as go
+        from datetime import datetime
+        import calendar
+        
+        # Convert datetime strings to datetime objects for analysis
+        filtered_df_copy = filtered_df.copy()
+        filtered_df_copy['datetime_obj'] = pd.to_datetime(filtered_df_copy['datetime_ist'])
+        
+        # Extract date components
+        filtered_df_copy['year'] = filtered_df_copy['datetime_obj'].dt.year
+        filtered_df_copy['month'] = filtered_df_copy['datetime_obj'].dt.month
+        filtered_df_copy['day'] = filtered_df_copy['datetime_obj'].dt.day
+        filtered_df_copy['weekday'] = filtered_df_copy['datetime_obj'].dt.day_name()
+        filtered_df_copy['hour'] = filtered_df_copy['datetime_obj'].dt.hour
+        filtered_df_copy['year_month'] = filtered_df_copy['datetime_obj'].dt.to_period('M')
+        filtered_df_copy['date'] = filtered_df_copy['datetime_obj'].dt.date
+        
+        # Create tabs for different timeline analyses
+        time_tab1, time_tab2, time_tab3, time_tab4, time_tab5 = st.tabs(["📅 Monthly Timeline", "📆 Daily Timeline", "📇 Month Analysis", "📃 Weekday Analysis", "🔥 Activity Heatmap"])
+        
+        with time_tab1:
+            st.markdown("**Monthly Message Timeline**")
+            
+            # Monthly timeline - messages per month
+            monthly_counts = filtered_df_copy.groupby('year_month').size().reset_index(name='message_count')
+            monthly_counts['year_month_str'] = monthly_counts['year_month'].astype(str)
+            
+            fig_monthly = px.line(
+                monthly_counts,
+                x='year_month_str',
+                y='message_count',
+                title='Messages per Month Over Time',
+                labels={'year_month_str': 'Month', 'message_count': 'Number of Messages'},
+                markers=True,
+                height=500
+            )
+            fig_monthly.update_layout(
+                xaxis_title="Month",
+                yaxis_title="Number of Messages",
+                hovermode='x unified'
+            )
+            fig_monthly.update_xaxes(tickangle=45)
+            st.plotly_chart(fig_monthly, use_container_width=True)
+            
+            # Monthly statistics
+            if len(monthly_counts) > 0:
+                max_month = monthly_counts.loc[monthly_counts['message_count'].idxmax()]
+                min_month = monthly_counts.loc[monthly_counts['message_count'].idxmin()]
+                avg_monthly = monthly_counts['message_count'].mean()
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Most Active Month", str(max_month['year_month_str']))  # type: ignore
+                    st.write(f"📊 {int(max_month['message_count'])} messages")  # type: ignore
+                with col2:
+                    st.metric("Least Active Month", str(min_month['year_month_str']))  # type: ignore
+                    st.write(f"📊 {int(min_month['message_count'])} messages")  # type: ignore
+                with col3:
+                    st.metric("Average Monthly", f"{avg_monthly:.0f} messages")
+        
+        with time_tab2:
+            st.markdown("**Daily Message Timeline**")
+            
+            # Daily timeline - messages per day
+            daily_counts = filtered_df_copy.groupby('date').size().reset_index(name='message_count')
+            daily_counts['date_str'] = daily_counts['date'].astype(str)
+            
+            fig_daily = px.line(
+                daily_counts,
+                x='date_str',
+                y='message_count',
+                title='Messages per Day Over Time',
+                labels={'date_str': 'Date', 'message_count': 'Number of Messages'},
+                height=500
+            )
+            fig_daily.update_layout(
+                xaxis_title="Date",
+                yaxis_title="Number of Messages",
+                hovermode='x unified'
+            )
+            fig_daily.update_xaxes(tickangle=45)
+            st.plotly_chart(fig_daily, use_container_width=True)
+            
+            # Daily statistics
+            if len(daily_counts) > 0:
+                max_day = daily_counts.loc[daily_counts['message_count'].idxmax()]
+                min_day = daily_counts.loc[daily_counts['message_count'].idxmin()]
+                avg_daily = daily_counts['message_count'].mean()
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Most Active Day", str(max_day['date_str']))
+                    st.write(f"📊 {int(max_day['message_count'])} messages")
+                with col2:
+                    st.metric("Least Active Day", str(min_day['date_str']))
+                    st.write(f"📊 {int(min_day['message_count'])} messages")
+                with col3:
+                    st.metric("Average Daily", f"{avg_daily:.0f} messages")
+        
+        with time_tab3:
+            st.markdown("**Month-based Analysis**")
+            
+            # Month analysis - aggregate by month name across all years
+            month_counts = filtered_df_copy.groupby('month').size().reset_index(name='message_count')
+            month_counts['month_name'] = month_counts['month'].apply(lambda x: calendar.month_name[x])
+            
+            # Bar chart for month analysis
+            fig_month = px.bar(
+                month_counts,
+                x='month_name',
+                y='message_count',
+                title='Messages by Month (All Years Combined)',
+                labels={'month_name': 'Month', 'message_count': 'Number of Messages'},
+                height=500,
+                color='message_count',
+                color_continuous_scale='viridis'
+            )
+            fig_month.update_layout(
+                xaxis_title="Month",
+                yaxis_title="Number of Messages",
+                showlegend=False
+            )
+            st.plotly_chart(fig_month, use_container_width=True)
+            
+            # Month statistics
+            if len(month_counts) > 0:
+                max_month = month_counts.loc[month_counts['message_count'].idxmax()]
+                min_month = month_counts.loc[month_counts['message_count'].idxmin()]
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Most Active Month", str(max_month['month_name']))
+                    st.write(f"📊 {int(max_month['message_count'])} messages")
+                with col2:
+                    st.metric("Least Active Month", str(min_month['month_name']))
+                    st.write(f"📊 {int(min_month['message_count'])} messages")
+        
+        with time_tab4:
+            st.markdown("**Weekday Analysis**")
+            
+            # Weekday analysis
+            weekday_counts = filtered_df_copy.groupby('weekday').size().reset_index(name='message_count')
+            
+            # Order weekdays properly
+            weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            weekday_counts['weekday'] = pd.Categorical(weekday_counts['weekday'], categories=weekday_order, ordered=True)
+            weekday_counts = weekday_counts.sort_values('weekday')
+            
+            # Bar chart for weekday analysis
+            fig_weekday = px.bar(
+                weekday_counts,
+                x='weekday',
+                y='message_count',
+                title='Messages by Day of Week',
+                labels={'weekday': 'Day of Week', 'message_count': 'Number of Messages'},
+                height=500,
+                color='message_count',
+                color_continuous_scale='plasma'
+            )
+            fig_weekday.update_layout(
+                xaxis_title="Day of Week",
+                yaxis_title="Number of Messages",
+                showlegend=False
+            )
+            st.plotly_chart(fig_weekday, use_container_width=True)
+            
+            # Weekday statistics
+            if len(weekday_counts) > 0:
+                max_weekday = weekday_counts.loc[weekday_counts['message_count'].idxmax()]
+                min_weekday = weekday_counts.loc[weekday_counts['message_count'].idxmin()]
+                total_weekdays = weekday_counts['message_count'].sum()
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Most Active Day", str(max_weekday['weekday']))  # type: ignore
+                    st.write(f"📊 {int(max_weekday['message_count'])} messages")  # type: ignore
+                with col2:
+                    st.metric("Least Active Day", str(min_weekday['weekday']))  # type: ignore
+                    st.write(f"📊 {int(min_weekday['message_count'])} messages")  # type: ignore
+                with col3:
+                    avg_weekday = total_weekdays / 7
+                    st.metric("Average per Weekday", f"{avg_weekday:.0f} messages")
+                
+                # Additional weekday insights
+                st.markdown("**Weekday Insights:**")
+                weekend_messages = weekday_counts[weekday_counts['weekday'].isin(['Saturday', 'Sunday'])]['message_count'].sum()
+                weekday_messages = weekday_counts[~weekday_counts['weekday'].isin(['Saturday', 'Sunday'])]['message_count'].sum()
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.info(f"**Weekend Activity:** {weekend_messages} messages ({weekend_messages/total_weekdays*100:.1f}%)")
+                with col2:
+                    st.info(f"**Weekday Activity:** {weekday_messages} messages ({weekday_messages/total_weekdays*100:.1f}%)")
+        
+        with time_tab5:
+            st.markdown("**Activity Heatmap - Weekday vs Hour**")
+            
+            # Create heatmap data: weekday vs hour
+            heatmap_data = filtered_df_copy.groupby(['weekday', 'hour']).size().reset_index(name='message_count')
+            
+            # Create a complete grid of all weekdays and hours
+            weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            hours = list(range(24))
+            
+            # Create a pivot table for the heatmap
+            heatmap_pivot = heatmap_data.pivot(index='weekday', columns='hour', values='message_count')
+            
+            # Reindex to ensure all weekdays and hours are present
+            heatmap_pivot = heatmap_pivot.reindex(weekday_order, fill_value=0)
+            heatmap_pivot = heatmap_pivot.reindex(columns=hours, fill_value=0)
+            
+            # Create heatmap using plotly
+            fig_heatmap = go.Figure(data=go.Heatmap(
+                z=heatmap_pivot.values,
+                x=[f"{h:02d}:00" for h in hours],
+                y=weekday_order,
+                colorscale='YlOrRd',
+                showscale=True,
+                hoverongaps=False,
+                hovertemplate='<b>%{y}</b><br>Hour: %{x}<br>Messages: %{z}<extra></extra>'
+            ))
+            
+            fig_heatmap.update_layout(
+                title='Message Activity Heatmap: Weekday vs Hour',
+                xaxis_title='Hour of Day',
+                yaxis_title='Day of Week',
+                height=500,
+                font=dict(size=12)
+            )
+            
+            st.plotly_chart(fig_heatmap, use_container_width=True)
+            
+            # Heatmap insights
+            if len(heatmap_data) > 0:
+                # Find peak activity hour and day
+                peak_activity = heatmap_data.loc[heatmap_data['message_count'].idxmax()]
+                total_messages = heatmap_data['message_count'].sum()
+                
+                # Find most active hour overall
+                hourly_activity = heatmap_data.groupby('hour')['message_count'].sum().reset_index()
+                most_active_hour = hourly_activity.loc[hourly_activity['message_count'].idxmax()]
+                
+                # Find most active day overall (should match weekday analysis)
+                daily_activity = heatmap_data.groupby('weekday')['message_count'].sum().reset_index()
+                most_active_day = daily_activity.loc[daily_activity['message_count'].idxmax()]
+                
+                # Extract scalar values to avoid type issues
+                peak_weekday = str(peak_activity['weekday'])
+                peak_hour = int(peak_activity['hour'])
+                peak_count = int(peak_activity['message_count'])
+                
+                active_hour = int(most_active_hour['hour'])
+                active_hour_count = int(most_active_hour['message_count'])
+                
+                active_day = str(most_active_day['weekday'])
+                active_day_count = int(most_active_day['message_count'])
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(
+                        "Peak Activity Period", 
+                        f"{peak_weekday} at {peak_hour:02d}:00"
+                    )
+                    st.write(f"📊 {peak_count} messages")
+                with col2:
+                    st.metric(
+                        "Most Active Hour", 
+                        f"{active_hour:02d}:00"
+                    )
+                    st.write(f"📊 {active_hour_count} messages")
+                with col3:
+                    st.metric(
+                        "Most Active Day", 
+                        active_day
+                    )
+                    st.write(f"📊 {active_day_count} messages")
+                
+                # Additional insights
+                st.markdown("**Activity Insights:**")
+                
+                # Morning, afternoon, evening, night breakdown
+                morning_hours = list(range(6, 12))
+                afternoon_hours = list(range(12, 18))
+                evening_hours = list(range(18, 22))
+                night_hours = list(range(22, 24)) + list(range(0, 6))
+                
+                morning_msgs = heatmap_data[heatmap_data['hour'].isin(morning_hours)]['message_count'].sum()
+                afternoon_msgs = heatmap_data[heatmap_data['hour'].isin(afternoon_hours)]['message_count'].sum()
+                evening_msgs = heatmap_data[heatmap_data['hour'].isin(evening_hours)]['message_count'].sum()
+                night_msgs = heatmap_data[heatmap_data['hour'].isin(night_hours)]['message_count'].sum()
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.info(f"""**Time of Day Breakdown:**
+                    - Morning (06:00-12:00): {morning_msgs} messages ({morning_msgs/total_messages*100:.1f}%)
+                    - Afternoon (12:00-18:00): {afternoon_msgs} messages ({afternoon_msgs/total_messages*100:.1f}%)
+                    """)
+                with col2:
+                    st.info(f"""**Evening & Night:**
+                    - Evening (18:00-22:00): {evening_msgs} messages ({evening_msgs/total_messages*100:.1f}%)
+                    - Night (22:00-06:00): {night_msgs} messages ({night_msgs/total_messages*100:.1f}%)
+                    """)
+    else:
+        st.info("No messages available for timeline analysis.")
+    
     # Show sample data
     st.subheader("📋 Sample Messages")
     if len(filtered_df) > 0:
