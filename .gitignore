@@ -4,3 +4,6 @@ __pycache__/
 *.csv
 *.zip
 .DS_Store
+
+# Exception: Don't ignore a specific_file.txt
+!stop_words_hinglish.txt
