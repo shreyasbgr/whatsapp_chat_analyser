@@ -78,7 +78,8 @@ def parse_chat_file(file: Union[str, Any]) -> pd.DataFrame:
             date_str, time_str, am_pm, sender, message = match.groups()
             try:
                 dt_str = f"{date_str} {time_str} {am_pm}"
-                dt_obj = datetime.strptime(dt_str, "%y/%m/%d %I:%M:%S %p").replace(tzinfo=ZoneInfo("Asia/Kolkata"))
+                # Parse using correct DD/MM/YY format (not YY/MM/DD)
+                dt_obj = datetime.strptime(dt_str, "%d/%m/%y %I:%M:%S %p").replace(tzinfo=ZoneInfo("Asia/Kolkata"))
                 dt_utc = dt_obj.astimezone(ZoneInfo("UTC"))
             except Exception:
                 continue
@@ -161,7 +162,7 @@ def parse_chat_file(file: Union[str, Any]) -> pd.DataFrame:
                 })
             
             # Extract mentions with their positions (@username)
-            mention_pattern = r'@[A-Za-z0-9_]+'
+            mention_pattern = r'@[\dA-Za-z_]+'
             mention_matches = []
             mentions = []
             
@@ -224,8 +225,8 @@ def parse_chat_file(file: Union[str, Any]) -> pd.DataFrame:
             # Remove money amounts
             message_clean = re.sub(money_pattern, '', message_clean, flags=re.IGNORECASE)
             
-            # Remove mentions
-            message_clean = re.sub(mention_pattern, '', message_clean)
+            # Remove mentions, including standalone '@'
+            message_clean = re.sub(r'@+', '', message_clean)
             
             # Remove emojis
             message_clean = re.sub(emoji_pattern, '', message_clean)

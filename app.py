@@ -39,46 +39,69 @@ if uploaded_file:
     # Display header and basic info
     st.header(f"📊 Analysis - {display_title}")
     
-    # Show basic stats
-    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
+    # Calculate word count
+    total_words = 0
+    for message in filtered_df['message']:
+        if message and message.strip():
+            total_words += len(message.split())
+    
+    # Show basic stats - Large metrics display
+    st.subheader("📊 Key Statistics")
+    
+    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
     
     with col1:
         st.metric("Total Messages", len(filtered_df))
     with col2:
+        st.metric("Total Words", total_words)
+    with col3:
+        media_count = len(filtered_df[filtered_df['media'] != ""])
+        st.metric("Total Media Shared", media_count)
+    with col4:
+        url_count = len(filtered_df[filtered_df['urls'] != ""])
+        st.metric("Total Links", url_count)
+    with col5:
+        # Count both phone numbers in messages and contact media types
+        phone_count = len(filtered_df[filtered_df['phone_numbers'] != ""])
+        contact_media_count = len(filtered_df[filtered_df['media'] == "contact"])
+        total_contacts = phone_count + contact_media_count
+        st.metric("Total Contacts Shared", total_contacts)
+    with col6:
+        emoji_count = len(filtered_df[filtered_df['emojis'] != ""])
+        st.metric("Total Emojis Shared", emoji_count)
+    with col7:
+        mention_count = len(filtered_df[filtered_df['mentions'] != ""])
+        st.metric("Total Mentions", mention_count)
+    
+    # Additional information row
+    st.subheader("📋 Additional Information")
+    col8, col9, col10 = st.columns([1, 1, 1.5])  # Give more space to the date range column
+    
+    with col8:
         if selected_user == "Overall":
             st.metric("Total Users", len(all_users))
         else:
-            st.metric("User", selected_user)
-    with col3:
-        media_count = len(filtered_df[filtered_df['media'] != ""])
-        st.metric("Media Messages", media_count)
-    with col4:
-        url_count = len(filtered_df[filtered_df['urls'] != ""])
-        st.metric("Messages with URLs", url_count)
-    with col5:
-        phone_count = len(filtered_df[filtered_df['phone_numbers'] != ""])
-        st.metric("Messages with Phones", phone_count)
-    with col6:
-        emoji_count = len(filtered_df[filtered_df['emojis'] != ""])
-        st.metric("Messages with Emojis", emoji_count)
-    with col7:
-        st.metric("Master DataFrame", len(master_df))
-    with col8:
+            st.metric("Selected User", selected_user)
+    with col9:
+        st.metric("Total Records", len(master_df))
+    with col10:
         if len(filtered_df) > 0:
             date_range = f"{filtered_df['datetime_ist'].min()[:10]} to {filtered_df['datetime_ist'].max()[:10]}"
-            st.metric("Date Range", date_range)
+            st.markdown("**Date Range**")
+            st.text(date_range)
         else:
-            st.metric("Date Range", "No data")
+            st.markdown("**Date Range**")
+            st.text("No data")
     
     # Show sample data
     st.subheader("📋 Sample Messages")
     if len(filtered_df) > 0:
         # Create a display dataframe with better formatting
-        display_df = filtered_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'media_file_name', 'urls', 'phone_numbers', 'emojis']].head(10).copy()
+        display_df = filtered_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'media_file_name', 'urls', 'phone_numbers', 'mentions', 'emojis']].head(10).copy()
         
         # Show the dataframe with renamed columns - Message contains only user-typed content
         st.dataframe(
-            display_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'media_file_name', 'urls', 'phone_numbers', 'emojis']].rename(columns={
+            display_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'media_file_name', 'urls', 'phone_numbers', 'mentions', 'emojis']].rename(columns={
                 'datetime_ist_human': 'Time',
                 'sender': 'Sender',
                 'raw_message': 'Raw Message',
@@ -86,10 +109,23 @@ if uploaded_file:
                 'media': 'Media Type',
                 'media_file_name': 'Media File Name',
                 'urls': 'URLs',
-                'phone_numbers': 'Phone Numbers',
+                'phone_numbers': 'Contacts',
+                'mentions': 'Mentions',
                 'emojis': 'Emojis'
             }), 
-            use_container_width=True
+            use_container_width=True,
+            column_config={
+                'Time': st.column_config.TextColumn(width="medium"),
+                'Sender': st.column_config.TextColumn(width="small"),
+                'Raw Message': st.column_config.TextColumn(width="large"),
+                'Clean Message': st.column_config.TextColumn(width="large"),
+                'Media Type': st.column_config.TextColumn(width="small"),
+                'Media File Name': st.column_config.TextColumn(width="medium"),
+                'URLs': st.column_config.TextColumn(width="medium"),
+                'Contacts': st.column_config.TextColumn(width="medium"),
+                'Mentions': st.column_config.TextColumn(width="medium"),
+                'Emojis': st.column_config.TextColumn(width="medium")
+            }
         )
     else:
         st.warning("No messages found for the selected user.")
@@ -162,7 +198,7 @@ if uploaded_file:
                     st.write(f"- {emoji}: {count}")
         
         st.write("\n**Sample from Master DataFrame:**")
-        st.dataframe(master_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'urls', 'phone_numbers', 'emojis', 'group_system_message']].head(5))
+        st.dataframe(master_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'urls', 'phone_numbers', 'mentions', 'emojis', 'group_system_message']].head(5))
     
 else:
     st.info("Please upload a WhatsApp chat `.txt` file to begin analysis.")
