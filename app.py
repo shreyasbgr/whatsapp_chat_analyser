@@ -40,7 +40,7 @@ if uploaded_file:
     st.header(f"📊 Analysis - {display_title}")
     
     # Show basic stats
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
     
     with col1:
         st.metric("Total Messages", len(filtered_df))
@@ -53,8 +53,14 @@ if uploaded_file:
         media_count = len(filtered_df[filtered_df['media'] != ""])
         st.metric("Media Messages", media_count)
     with col4:
-        st.metric("Master DataFrame", len(master_df))
+        url_count = len(filtered_df[filtered_df['urls'] != ""])
+        st.metric("Messages with URLs", url_count)
     with col5:
+        phone_count = len(filtered_df[filtered_df['phone_numbers'] != ""])
+        st.metric("Messages with Phones", phone_count)
+    with col6:
+        st.metric("Master DataFrame", len(master_df))
+    with col7:
         if len(filtered_df) > 0:
             date_range = f"{filtered_df['datetime_ist'].min()[:10]} to {filtered_df['datetime_ist'].max()[:10]}"
             st.metric("Date Range", date_range)
@@ -65,20 +71,19 @@ if uploaded_file:
     st.subheader("📋 Sample Messages")
     if len(filtered_df) > 0:
         # Create a display dataframe with better formatting
-        display_df = filtered_df[['datetime_ist_human', 'sender', 'message', 'media']].head(10).copy()
+        display_df = filtered_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'media_file_name', 'urls', 'phone_numbers']].head(10).copy()
         
-        # For media messages, show the media type instead of empty message
-        display_df['display_content'] = display_df.apply(
-            lambda row: f"[{row['media'].upper()}]" if row['media'] else row['message'], axis=1
-        )
-        
-        # Show the dataframe with renamed columns
+        # Show the dataframe with renamed columns - Message contains only user-typed content
         st.dataframe(
-            display_df[['datetime_ist_human', 'sender', 'display_content', 'media']].rename(columns={
+            display_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'media_file_name', 'urls', 'phone_numbers']].rename(columns={
                 'datetime_ist_human': 'Time',
-                'sender': 'Sender', 
-                'display_content': 'Message/Media',
-                'media': 'Media Type'
+                'sender': 'Sender',
+                'raw_message': 'Raw Message',
+                'message': 'Clean Message',
+                'media': 'Media Type',
+                'media_file_name': 'Media File Name',
+                'urls': 'URLs',
+                'phone_numbers': 'Phone Numbers'
             }), 
             use_container_width=True
         )
@@ -105,9 +110,34 @@ if uploaded_file:
             media_counts = filtered_df[filtered_df['media'] != '']['media'].value_counts()
             for media_type, count in media_counts.items():
                 st.write(f"- {media_type}: {count}")
+            
+            # Show caption statistics
+            media_messages = filtered_df[filtered_df['media'] != '']
+            media_with_captions = len(media_messages[media_messages['message'] != ''])
+            media_without_captions = len(media_messages[media_messages['message'] == ''])
+            
+            st.write("\n**Caption Statistics:**")
+            st.write(f"- Media with captions: {media_with_captions}")
+            st.write(f"- Media without captions: {media_without_captions}")
+        
+        # Show URL statistics
+        if len(filtered_df[filtered_df['urls'] != '']) > 0:
+            st.write("\n**URL Statistics:**")
+            url_messages = filtered_df[filtered_df['urls'] != '']
+            st.write(f"- Messages with URLs: {len(url_messages)}")
+            st.write(f"- Messages with URLs and text: {len(url_messages[url_messages['message'] != ''])}")
+            st.write(f"- Messages with only URLs: {len(url_messages[url_messages['message'] == ''])}")
+        
+        # Show phone number statistics
+        if len(filtered_df[filtered_df['phone_numbers'] != '']) > 0:
+            st.write("\n**Phone Number Statistics:**")
+            phone_messages = filtered_df[filtered_df['phone_numbers'] != '']
+            st.write(f"- Messages with phone numbers: {len(phone_messages)}")
+            st.write(f"- Messages with phones and text: {len(phone_messages[phone_messages['message'] != ''])}")
+            st.write(f"- Messages with only phone numbers: {len(phone_messages[phone_messages['message'] == ''])}")
         
         st.write("\n**Sample from Master DataFrame:**")
-        st.dataframe(master_df[['datetime_ist_human', 'sender', 'message', 'media', 'group_system_message']].head(5))
+        st.dataframe(master_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'urls', 'phone_numbers', 'group_system_message']].head(5))
     
 else:
     st.info("Please upload a WhatsApp chat `.txt` file to begin analysis.")
