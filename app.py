@@ -93,6 +93,141 @@ if uploaded_file:
             st.markdown("**Date Range**")
             st.text("No data")
     
+    # Word frequency analysis
+    st.subheader("📊 Word Frequency Analysis")
+    if len(filtered_df) > 0:
+        # Load stop words
+        try:
+            with open('./stop_words_hinglish.txt', 'r', encoding='utf-8') as f:
+                stop_words = set(word.strip().lower() for word in f.readlines() if word.strip())
+        except FileNotFoundError:
+            stop_words = set()
+            st.warning("Stop words file not found. Word filtering may be less effective.")
+        
+        # Collect all words from messages with better filtering
+        all_words = []
+        for message in filtered_df['message']:
+            if message and message.strip():
+                # Split message into words and clean them
+                words = message.lower().split()
+                for word in words:
+                    # Remove punctuation and special characters, keep only alphanumeric
+                    clean_word = ''.join(char for char in word if char.isalnum())
+                    # Filter: non-empty, length > 1, not in stop words, not pure numbers
+                    if (clean_word and 
+                        len(clean_word) > 1 and 
+                        clean_word not in stop_words and
+                        not clean_word.isdigit()):
+                        all_words.append(clean_word)
+        
+        if all_words:
+            from collections import Counter
+            import plotly.express as px
+            from wordcloud import WordCloud
+            import matplotlib.pyplot as plt
+            import io
+            
+            # Count word frequencies
+            word_counts = Counter(all_words)
+            top_words_chart = word_counts.most_common(10)  # For chart display
+            all_words_sorted = word_counts.most_common()   # For scrollable list
+            
+            # Calculate percentages for chart (top 10)
+            total_words_count = len(all_words)
+            chart_data = []
+            for word, count in top_words_chart:
+                percentage = (count / total_words_count) * 100
+                chart_data.append({
+                    'word': word,
+                    'count': count,
+                    'percentage': percentage
+                })
+            
+            # Calculate percentages for all words (scrollable list)
+            all_words_data = []
+            for word, count in all_words_sorted:
+                percentage = (count / total_words_count) * 100
+                all_words_data.append({
+                    'word': word,
+                    'count': count,
+                    'percentage': percentage
+                })
+            
+            # Create tabs for different visualizations
+            tab1, tab2, tab3 = st.tabs(["📊 Bar Chart", "☁️ Word Cloud", "📋 Word List"])
+            
+            with tab1:
+                # Create bar chart (top 10 only)
+                words_df = pd.DataFrame(chart_data)
+                fig = px.bar(
+                    words_df,
+                    x='count',
+                    y='word',
+                    orientation='h',
+                    title='Top 10 Most Frequent Words',
+                    labels={'count': 'Frequency', 'word': 'Word'},
+                    height=500
+                )
+                fig.update_layout(
+                    yaxis={'categoryorder': 'total ascending'},
+                    showlegend=False
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with tab2:
+                # Create word cloud
+                st.markdown("**Word Cloud Visualization**")
+                
+                # Generate word cloud
+                wordcloud = WordCloud(
+                    width=800, 
+                    height=400, 
+                    background_color='white',
+                    colormap='viridis',
+                    max_words=100,
+                    stopwords=stop_words  # Pass stop words to WordCloud as well
+                ).generate_from_frequencies(word_counts)
+                
+                # Create matplotlib figure
+                fig, ax = plt.subplots(figsize=(10, 5))
+                ax.imshow(wordcloud, interpolation='bilinear')
+                ax.axis('off')
+                
+                # Display the word cloud
+                st.pyplot(fig)
+                
+                # Add some info about the word cloud
+                st.info(f"""Word cloud generated from {len(all_words_data)} unique words 
+                        (after filtering {len(stop_words)} stop words)""")
+            
+            with tab3:
+                st.markdown("**All Words ({} total)**".format(len(all_words_data)))
+                
+                # Create scrollable list with all words
+                scrollable_items = []
+                for i, data in enumerate(all_words_data, 1):
+                    scrollable_items.append(
+                        f"<div style='margin-bottom: 8px; padding: 5px; background-color: #ffffff; border-radius: 3px; border-left: 3px solid #1f77b4;'>" +
+                        f"<span style='color: #333333; font-weight: bold;'>{i}. {data['word']}</span>" +
+                        f"<span style='color: #666666; margin-left: 10px;'>{data['percentage']:.2f}% ({data['count']})</span>" +
+                        f"</div>"
+                    )
+                
+                scrollable_content = "".join(scrollable_items)
+                
+                # Display in a container with scroll and better styling
+                st.markdown(
+                    f"""<div style='height: 500px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; 
+                    border-radius: 5px; background-color: #f8f9fa;'>
+                    {scrollable_content}
+                    </div>""",
+                    unsafe_allow_html=True
+                )
+        else:
+            st.info("No words found after filtering stop words and short words.")
+    else:
+        st.info("No messages available for word frequency analysis.")
+    
     # Show sample data
     st.subheader("📋 Sample Messages")
     if len(filtered_df) > 0:
