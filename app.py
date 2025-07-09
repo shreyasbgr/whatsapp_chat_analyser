@@ -228,6 +228,149 @@ if uploaded_file:
     else:
         st.info("No messages available for word frequency analysis.")
     
+    # Emoji analysis
+    st.subheader("😊 Emoji Analysis")
+    if len(filtered_df) > 0:
+        # Extract all emojis from the filtered dataframe
+        all_emojis = []
+        emoji_messages = filtered_df[filtered_df['emojis'] != '']
+        
+        if len(emoji_messages) > 0:
+            for emoji_str in emoji_messages['emojis']:
+                if emoji_str and emoji_str != '':
+                    try:
+                        # Parse the emoji list string
+                        import ast
+                        emoji_list = ast.literal_eval(emoji_str)
+                        if isinstance(emoji_list, list):
+                            all_emojis.extend(emoji_list)
+                        else:
+                            # Handle case where it's just a string
+                            all_emojis.append(str(emoji_list))
+                    except (ValueError, SyntaxError):
+                        # If parsing fails, treat as single emoji
+                        all_emojis.append(emoji_str)
+        
+        if all_emojis:
+            from collections import Counter
+            import plotly.express as px
+            import plotly.graph_objects as go
+            
+            # Count emoji frequencies
+            emoji_counts = Counter(all_emojis)
+            top_emojis_chart = emoji_counts.most_common(10)  # For charts
+            all_emojis_sorted = emoji_counts.most_common()   # For scrollable list
+            
+            # Calculate percentages for top 10 emojis
+            total_emoji_count = len(all_emojis)
+            chart_data = []
+            for emoji, count in top_emojis_chart:
+                percentage = (count / total_emoji_count) * 100
+                chart_data.append({
+                    'emoji': emoji,
+                    'count': count,
+                    'percentage': percentage
+                })
+            
+            # Calculate percentages for all emojis
+            all_emoji_data = []
+            for emoji, count in all_emojis_sorted:
+                percentage = (count / total_emoji_count) * 100
+                all_emoji_data.append({
+                    'emoji': emoji,
+                    'count': count,
+                    'percentage': percentage
+                })
+            
+            # Create tabs for different emoji visualizations
+            emoji_tab1, emoji_tab2, emoji_tab3 = st.tabs(["📊 Bar Chart", "🥧 Pie Chart", "📋 Emoji List"])
+            
+            with emoji_tab1:
+                # Create bar chart for top 10 emojis
+                emojis_df = pd.DataFrame(chart_data)
+                fig = px.bar(
+                    emojis_df,
+                    x='count',
+                    y='emoji',
+                    orientation='h',
+                    title='Top 10 Most Used Emojis',
+                    labels={'count': 'Frequency', 'emoji': 'Emoji'},
+                    height=500
+                )
+                fig.update_layout(
+                    yaxis={'categoryorder': 'total ascending'},
+                    showlegend=False,
+                    font=dict(size=16)  # Larger font for better emoji visibility
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with emoji_tab2:
+                # Create pie chart for top 10 emojis
+                emojis_df = pd.DataFrame(chart_data)
+                fig = go.Figure(data=[go.Pie(
+                    labels=emojis_df['emoji'],
+                    values=emojis_df['count'],
+                    textinfo='label+percent',
+                    textfont_size=20,
+                    hole=0.3,  # Donut chart style
+                    textposition='outside',
+                    automargin=True
+                )])
+                fig.update_layout(
+                    title='Top 10 Most Used Emojis Distribution',
+                    height=600,
+                    font=dict(size=16),
+                    showlegend=True,
+                    legend=dict(
+                        orientation="v",
+                        yanchor="middle",
+                        y=0.5,
+                        xanchor="left",
+                        x=1.01
+                    ),
+                    margin=dict(l=20, r=120, t=50, b=20)
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Add emoji usage statistics
+                st.info(f"""📊 **Emoji Usage Statistics:**
+                - Total emojis used: {total_emoji_count:,}
+                - Unique emojis: {len(all_emoji_data)}
+                - Messages with emojis: {len(emoji_messages)} ({len(emoji_messages)/len(filtered_df)*100:.1f}% of all messages)
+                - Average emojis per message: {total_emoji_count/len(emoji_messages):.1f}
+                """)
+            
+            with emoji_tab3:
+                st.markdown("**All Emojis ({} unique emojis)**".format(len(all_emoji_data)))
+                
+                # Create scrollable list with all emojis
+                emoji_scrollable_items = []
+                for i, data in enumerate(all_emoji_data, 1):
+                    emoji_scrollable_items.append(
+                        f"<div style='margin-bottom: 8px; padding: 8px; background-color: #ffffff; border-radius: 3px; border-left: 3px solid #ff6b6b; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);'>" +
+                        f"<div style='font-size: 24px; margin-right: 10px; background: linear-gradient(45deg, #f0f0f0, #e0e0e0); padding: 4px 8px; border-radius: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); border: 1px solid #d0d0d0;'>{data['emoji']}</div>" +
+                        f"<div>" +
+                        f"<span style='color: #333333; font-weight: bold;'>#{i}</span>" +
+                        f"<span style='color: #666666; margin-left: 10px;'>{data['percentage']:.2f}% ({data['count']} times)</span>" +
+                        f"</div>" +
+                        f"</div>"
+                    )
+                
+                emoji_scrollable_content = "".join(emoji_scrollable_items)
+                
+                # Display emoji list in a scrollable container
+                st.markdown(
+                    f"""<div style='height: 500px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; 
+                    border-radius: 5px; background-color: #fff5f5;'>
+                    {emoji_scrollable_content}
+                    </div>""",
+                    unsafe_allow_html=True
+                )
+        else:
+            st.info("No emojis found in the selected messages.")
+    else:
+        st.info("No messages available for emoji analysis.")
+    
     # Show sample data
     st.subheader("📋 Sample Messages")
     if len(filtered_df) > 0:
