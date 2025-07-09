@@ -40,7 +40,7 @@ if uploaded_file:
     st.header(f"📊 Analysis - {display_title}")
     
     # Show basic stats
-    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
     
     with col1:
         st.metric("Total Messages", len(filtered_df))
@@ -59,8 +59,11 @@ if uploaded_file:
         phone_count = len(filtered_df[filtered_df['phone_numbers'] != ""])
         st.metric("Messages with Phones", phone_count)
     with col6:
-        st.metric("Master DataFrame", len(master_df))
+        emoji_count = len(filtered_df[filtered_df['emojis'] != ""])
+        st.metric("Messages with Emojis", emoji_count)
     with col7:
+        st.metric("Master DataFrame", len(master_df))
+    with col8:
         if len(filtered_df) > 0:
             date_range = f"{filtered_df['datetime_ist'].min()[:10]} to {filtered_df['datetime_ist'].max()[:10]}"
             st.metric("Date Range", date_range)
@@ -71,11 +74,11 @@ if uploaded_file:
     st.subheader("📋 Sample Messages")
     if len(filtered_df) > 0:
         # Create a display dataframe with better formatting
-        display_df = filtered_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'media_file_name', 'urls', 'phone_numbers']].head(10).copy()
+        display_df = filtered_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'media_file_name', 'urls', 'phone_numbers', 'emojis']].head(10).copy()
         
         # Show the dataframe with renamed columns - Message contains only user-typed content
         st.dataframe(
-            display_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'media_file_name', 'urls', 'phone_numbers']].rename(columns={
+            display_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'media_file_name', 'urls', 'phone_numbers', 'emojis']].rename(columns={
                 'datetime_ist_human': 'Time',
                 'sender': 'Sender',
                 'raw_message': 'Raw Message',
@@ -83,7 +86,8 @@ if uploaded_file:
                 'media': 'Media Type',
                 'media_file_name': 'Media File Name',
                 'urls': 'URLs',
-                'phone_numbers': 'Phone Numbers'
+                'phone_numbers': 'Phone Numbers',
+                'emojis': 'Emojis'
             }), 
             use_container_width=True
         )
@@ -136,8 +140,29 @@ if uploaded_file:
             st.write(f"- Messages with phones and text: {len(phone_messages[phone_messages['message'] != ''])}")
             st.write(f"- Messages with only phone numbers: {len(phone_messages[phone_messages['message'] == ''])}")
         
+        # Show emoji statistics
+        if len(filtered_df[filtered_df['emojis'] != '']) > 0:
+            st.write("\n**Emoji Statistics:**")
+            emoji_messages = filtered_df[filtered_df['emojis'] != '']
+            st.write(f"- Messages with emojis: {len(emoji_messages)}")
+            st.write(f"- Messages with emojis and text: {len(emoji_messages[emoji_messages['message'] != ''])}")
+            st.write(f"- Messages with only emojis: {len(emoji_messages[emoji_messages['message'] == ''])}")
+            
+            # Show most common emojis
+            all_emojis = []
+            for emoji_str in emoji_messages['emojis']:
+                if emoji_str:
+                    all_emojis.extend(emoji_str.split(' '))
+            
+            if all_emojis:
+                from collections import Counter
+                emoji_counts = Counter(all_emojis)
+                st.write("\n**Most Common Emojis:**")
+                for emoji, count in emoji_counts.most_common(10):
+                    st.write(f"- {emoji}: {count}")
+        
         st.write("\n**Sample from Master DataFrame:**")
-        st.dataframe(master_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'urls', 'phone_numbers', 'group_system_message']].head(5))
+        st.dataframe(master_df[['datetime_ist_human', 'sender', 'raw_message', 'message', 'media', 'urls', 'phone_numbers', 'emojis', 'group_system_message']].head(5))
     
 else:
     st.info("Please upload a WhatsApp chat `.txt` file to begin analysis.")

@@ -177,6 +177,24 @@ def parse_chat_file(file: Union[str, Any]) -> pd.DataFrame:
                     'end': end_pos
                 })
             
+            # Extract emojis with their positions
+            # Unicode ranges for emojis
+            emoji_pattern = r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF\U00002600-\U000026FF\U00002700-\U000027BF\U0001F900-\U0001F9FF\U0001F018-\U0001F270\U0001F000-\U0001F02F\U0001F0A0-\U0001F0FF\U0001F100-\U0001F64F\U0001F170-\U0001F251]'
+            emoji_matches = []
+            emojis = []
+            
+            for match in re.finditer(emoji_pattern, message):
+                emoji = match.group().strip()
+                start_pos = match.start()
+                end_pos = match.end()
+                
+                emojis.append(emoji)
+                emoji_matches.append({
+                    'emoji': emoji,
+                    'start': start_pos,
+                    'end': end_pos
+                })
+            
             # Convert data to JSON strings for storage
             urls_json = str(urls) if urls else ""
             url_positions_json = str(url_matches) if url_matches else ""
@@ -188,6 +206,8 @@ def parse_chat_file(file: Union[str, Any]) -> pd.DataFrame:
             money_positions_json = str(money_matches) if money_matches else ""
             mentions_json = str(mentions) if mentions else ""
             mention_positions_json = str(mention_matches) if mention_matches else ""
+            emojis_json = str(emojis) if emojis else ""
+            emoji_positions_json = str(emoji_matches) if emoji_matches else ""
             
             # Remove extracted patterns from message to get clean text
             message_clean = message
@@ -207,6 +227,9 @@ def parse_chat_file(file: Union[str, Any]) -> pd.DataFrame:
             # Remove mentions
             message_clean = re.sub(mention_pattern, '', message_clean)
             
+            # Remove emojis
+            message_clean = re.sub(emoji_pattern, '', message_clean)
+            
             # Clean up extra spaces, newlines, and other whitespace
             message_clean = re.sub(r'\s+', ' ', message_clean).strip()
             
@@ -214,7 +237,7 @@ def parse_chat_file(file: Union[str, Any]) -> pd.DataFrame:
             message_clean = re.sub(r'^[\s\-:,\.]+|[\s\-:,\.]+$', '', message_clean)
             
             # If message becomes empty after pattern removal, but there were extracted patterns
-            if not message_clean and (urls or phone_numbers or emails or money_amounts or mentions):
+            if not message_clean and (urls or phone_numbers or emails or money_amounts or mentions or emojis):
                 # Message was just extracted patterns, keep message empty
                 message = ""
             else:
@@ -295,6 +318,14 @@ def parse_chat_file(file: Union[str, Any]) -> pd.DataFrame:
                 "url_positions": url_positions_json,
                 "phone_numbers": phone_numbers_json,
                 "phone_positions": phone_positions_json,
+                "emails": emails_json,
+                "email_positions": email_positions_json,
+                "money_amounts": money_amounts_json,
+                "money_positions": money_positions_json,
+                "mentions": mentions_json,
+                "mention_positions": mention_positions_json,
+                "emojis": emojis_json,
+                "emoji_positions": emoji_positions_json,
                 "message_modifier": modifier,
                 "group_system_message": group_system_flag,
                 "year": dt_obj.year,
@@ -321,7 +352,9 @@ def parse_chat_file(file: Union[str, Any]) -> pd.DataFrame:
         return pd.DataFrame(columns=[
             "datetime_ist", "datetime_ist_human", "datetime_utc", "sender", 
             "raw_message", "message", "media", "media_file_name", "urls", "url_positions", 
-            "phone_numbers", "phone_positions", "message_modifier", "group_system_message", 
+            "phone_numbers", "phone_positions", "emails", "email_positions", 
+            "money_amounts", "money_positions", "mentions", "mention_positions",
+            "emojis", "emoji_positions", "message_modifier", "group_system_message", 
             "year", "month", "day", "hour", "minute"
         ])
     
