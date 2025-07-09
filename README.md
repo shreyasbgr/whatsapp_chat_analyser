@@ -1,5 +1,15 @@
 # 📱 WhatsApp Chat Analyzer
 
+## 🌐 Live Deployment
+
+**🚀 [Try the app live here!](https://whatsapp-chat-analyzer-shreyas.streamlit.app/)**
+
+- **Automatic Updates**: The app automatically updates with every GitHub commit
+- **No Installation Required**: Access the full functionality directly in your browser
+- **Secure**: All processing happens in your browser session - no data is stored on our servers
+
+---
+
 A powerful Streamlit-based web application for analyzing WhatsApp chat exports with advanced media detection, group notification filtering, and comprehensive data processing capabilities.
 
 ## 🌟 Features
