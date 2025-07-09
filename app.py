@@ -241,7 +241,7 @@ if uploaded_file:
                     try:
                         # Parse the emoji list string
                         import ast
-                        emoji_list = ast.literal_eval(emoji_str)
+                        emoji_list = ast.literal_eval(emoji_str)  # type: ignore
                         if isinstance(emoji_list, list):
                             all_emojis.extend(emoji_list)
                         else:
@@ -381,16 +381,16 @@ if uploaded_file:
         
         # Convert datetime strings to datetime objects for analysis
         filtered_df_copy = filtered_df.copy()
-        filtered_df_copy['datetime_obj'] = pd.to_datetime(filtered_df_copy['datetime_ist'])
+        filtered_df_copy['datetime_obj'] = pd.to_datetime(filtered_df_copy['datetime_ist'])  # type: ignore
         
         # Extract date components
-        filtered_df_copy['year'] = filtered_df_copy['datetime_obj'].dt.year
-        filtered_df_copy['month'] = filtered_df_copy['datetime_obj'].dt.month
-        filtered_df_copy['day'] = filtered_df_copy['datetime_obj'].dt.day
-        filtered_df_copy['weekday'] = filtered_df_copy['datetime_obj'].dt.day_name()
-        filtered_df_copy['hour'] = filtered_df_copy['datetime_obj'].dt.hour
-        filtered_df_copy['year_month'] = filtered_df_copy['datetime_obj'].dt.to_period('M')
-        filtered_df_copy['date'] = filtered_df_copy['datetime_obj'].dt.date
+        filtered_df_copy['year'] = filtered_df_copy['datetime_obj'].dt.year  # type: ignore
+        filtered_df_copy['month'] = filtered_df_copy['datetime_obj'].dt.month  # type: ignore
+        filtered_df_copy['day'] = filtered_df_copy['datetime_obj'].dt.day  # type: ignore
+        filtered_df_copy['weekday'] = filtered_df_copy['datetime_obj'].dt.day_name()  # type: ignore
+        filtered_df_copy['hour'] = filtered_df_copy['datetime_obj'].dt.hour  # type: ignore
+        filtered_df_copy['year_month'] = filtered_df_copy['datetime_obj'].dt.to_period('M')  # type: ignore
+        filtered_df_copy['date'] = filtered_df_copy['datetime_obj'].dt.date  # type: ignore
         
         # Create tabs for different timeline analyses
         time_tab1, time_tab2, time_tab3, time_tab4, time_tab5 = st.tabs(["📅 Monthly Timeline", "📆 Daily Timeline", "📇 Month Analysis", "📃 Weekday Analysis", "🔥 Activity Heatmap"])

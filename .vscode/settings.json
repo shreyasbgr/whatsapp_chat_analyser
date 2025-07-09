@@ -1,0 +1,16 @@
+{
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportArgumentType": "none",
+        "reportCallInDefaultInitializer": "none",
+        "reportGeneralTypeIssues": "warning",
+        "reportOptionalMemberAccess": "warning",
+        "reportUnboundVariable": "error",
+        "reportUndefinedVariable": "error"
+    },
+    "python.analysis.exclude": [
+        "**/test_*.py",
+        "**/tests/**"
+    ]
+}
