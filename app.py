@@ -67,8 +67,23 @@ if uploaded_file:
         total_contacts = phone_count + contact_media_count
         st.metric("Total Contacts Shared", total_contacts)
     with col6:
-        emoji_count = len(filtered_df[filtered_df['emojis'] != ""])
-        st.metric("Total Emojis Shared", emoji_count)
+        # Count actual emojis, not messages with emojis
+        total_emojis = 0
+        emoji_messages = filtered_df[filtered_df['emojis'] != '']
+        for emoji_str in emoji_messages['emojis']:
+            if emoji_str and emoji_str != '':
+                try:
+                    # Parse the emoji list string
+                    import ast
+                    emoji_list = ast.literal_eval(emoji_str)
+                    if isinstance(emoji_list, list):
+                        total_emojis += len(emoji_list)
+                    else:
+                        total_emojis += 1
+                except (ValueError, SyntaxError):
+                    # If parsing fails, treat as single emoji
+                    total_emojis += 1
+        st.metric("Total Emojis Shared", total_emojis)
     with col7:
         mention_count = len(filtered_df[filtered_df['mentions'] != ""])
         st.metric("Total Mentions", mention_count)
@@ -346,9 +361,12 @@ if uploaded_file:
                 # Create scrollable list with all emojis
                 emoji_scrollable_items = []
                 for i, data in enumerate(all_emoji_data, 1):
+                    # Clean the emoji to remove Unicode surrogate characters
+                    from parser import clean_invisible
+                    cleaned_emoji = clean_invisible(data['emoji'])
                     emoji_scrollable_items.append(
                         f"<div style='margin-bottom: 8px; padding: 8px; background-color: #ffffff; border-radius: 3px; border-left: 3px solid #ff6b6b; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);'>" +
-                        f"<div style='font-size: 24px; margin-right: 10px; background: linear-gradient(45deg, #f0f0f0, #e0e0e0); padding: 4px 8px; border-radius: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); border: 1px solid #d0d0d0;'>{data['emoji']}</div>" +
+                        f"<div style='font-size: 24px; margin-right: 10px; background: linear-gradient(45deg, #f0f0f0, #e0e0e0); padding: 4px 8px; border-radius: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); border: 1px solid #d0d0d0;'>{cleaned_emoji}</div>" +
                         f"<div>" +
                         f"<span style='color: #333333; font-weight: bold;'>#{i}</span>" +
                         f"<span style='color: #666666; margin-left: 10px;'>{data['percentage']:.2f}% ({data['count']} times)</span>" +
